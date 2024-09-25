@@ -1,8 +1,8 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /go/src/tailscale
 
-ARG VERSION=1.72.1
+ARG VERSION
 
 RUN mkdir -p /go/src && cd /go/src \
     && wget -O tailscale.tar.gz https://github.com/tailscale/tailscale/archive/refs/tags/v$VERSION.tar.gz \
