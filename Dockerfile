@@ -18,4 +18,4 @@ WORKDIR /app
 COPY --from=builder /go/src/tailscale/derper .
 COPY --from=builder /go/src/tailscale/derpprobe .
 
-CMD /app/derper
+CMD ["/app/derper"]
