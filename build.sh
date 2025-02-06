@@ -1,7 +1,7 @@
 #!/bin/sh
 
 BUILDER=derper-builder
-VERSION=1.76.6
+VERSION=1.80.0
 
 docker buildx create --use --name $BUILDER
 docker buildx inspect --bootstrap
