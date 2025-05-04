@@ -1,6 +1,7 @@
 #!/bin/sh
 
-BUILDER=derper-builder
+NAME=derper
+BUILDER=${NAME}-builder
 VERSION=1.82.0
 
 docker buildx create --use --name $BUILDER
@@ -8,8 +9,9 @@ docker buildx inspect --bootstrap
 
 docker buildx build \
     --platform linux/amd64,linux/arm64 \
-    --output "type=image,push=true" \
-    --tag ripples/derper:$VERSION \
+    --push \
+    --pull \
+    --tag ripples/$NAME:$VERSION \
     --build-arg VERSION=$VERSION \
     --builder $BUILDER .
 
