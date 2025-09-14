@@ -2,7 +2,7 @@
 
 NAME=derper
 BUILDER=${NAME}-builder
-VERSION=1.86.4
+VERSION=1.88.1
 
 docker buildx create --use --name $BUILDER
 docker buildx inspect --bootstrap
