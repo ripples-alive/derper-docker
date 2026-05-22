@@ -5,7 +5,7 @@ server binaries `derper` and `derpprobe`.
 
 Images are published to GitHub Container Registry:
 
-- `ghcr.io/ripples-alive/derper:1.98.2`
+- `ghcr.io/ripples-alive/derper:1.98.3`
 - `ghcr.io/ripples-alive/derper:latest`
 
 The image supports `linux/amd64` and `linux/arm64`.
@@ -16,7 +16,7 @@ The image supports `linux/amd64` and `linux/arm64`.
 docker run --rm \
   -p 443:443 \
   -p 80:80 \
-  ghcr.io/ripples-alive/derper:1.98.2
+  ghcr.io/ripples-alive/derper:1.98.3
 ```
 
 Pass `derper` flags after the image name as needed:
@@ -25,19 +25,19 @@ Pass `derper` flags after the image name as needed:
 docker run --rm \
   -p 443:443 \
   -p 80:80 \
-  ghcr.io/ripples-alive/derper:1.98.2 \
+  ghcr.io/ripples-alive/derper:1.98.3 \
   --hostname derp.example.com
 ```
 
 ## Builds
 
-Local builds use `build.sh`, which pushes `ripples/derper:1.98.2` to Docker
+Local builds use `build.sh`, which pushes `ripples/derper:1.98.3` to Docker
 Hub for `linux/amd64` and `linux/arm64`.
 
 GitHub Actions builds the same Dockerfile directly with Buildx and the build
-argument `VERSION=1.98.2`. The workflow publishes
-`ghcr.io/ripples-alive/derper:1.98.2` and `ghcr.io/ripples-alive/derper:latest`
-on pushes to `main`, version tags such as `v1.98.2`, and manual
+argument `VERSION=1.98.3`. The workflow publishes
+`ghcr.io/ripples-alive/derper:1.98.3` and `ghcr.io/ripples-alive/derper:latest`
+on pushes to `main`, version tags such as `v1.98.3`, and manual
 `workflow_dispatch` runs. Pull requests build the image for validation but do
 not publish it.
 
