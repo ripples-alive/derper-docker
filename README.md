@@ -41,5 +41,10 @@ on pushes to `main`, version tags such as `v1.98.8`, and manual
 `workflow_dispatch` runs. Pull requests build the image for validation but do
 not publish it.
 
-To change the Tailscale source version used by GitHub Actions, update
-`DEFAULT_TAILSCALE_VERSION` in `.github/workflows/docker-image.yml`.
+To change the Tailscale source version used by local builds and GitHub Actions,
+update `tailscale-version.txt`. Automated version commits intentionally avoid
+workflow files so the built-in `GITHUB_TOKEN` can push them.
+
+The `Update Tailscale stable release` workflow checks the upstream stable
+release every day, validates a candidate multi-architecture build, and opens
+an exact-version PR for automatic merging when repository rules allow it.
