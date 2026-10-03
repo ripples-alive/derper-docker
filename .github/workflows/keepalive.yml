@@ -1,0 +1,55 @@
+name: Keep repository active
+
+on:
+  schedule:
+    - cron: "43 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repository-keepalive
+  cancel-in-progress: false
+
+env:
+  KEEPALIVE_AFTER_DAYS: "45"
+  KEEPALIVE_PATH: .github/keepalive/last-run
+
+jobs:
+  keepalive:
+    name: Commit keepalive marker when needed
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout default branch
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Create keepalive commit when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --prune origin main
+          git checkout --detach origin/main
+
+          last_commit_epoch="$(git log -1 --format=%ct)"
+          now_epoch="$(date +%s)"
+          threshold_seconds=$((KEEPALIVE_AFTER_DAYS * 86400))
+          age_seconds=$((now_epoch - last_commit_epoch))
+          echo "Latest main commit age: $((age_seconds / 86400)) days"
+          if (( age_seconds < threshold_seconds )); then
+            echo "No keepalive commit is needed yet."
+            exit 0
+          fi
+
+          mkdir -p "$(dirname "$KEEPALIVE_PATH")"
+          date -u +%Y-%m-%dT%H:%M:%SZ >"$KEEPALIVE_PATH"
+          git config user.name "ripples"
+          git config user.email "ripples.alive@outlook.com"
+          git add -- "$KEEPALIVE_PATH"
+          git diff --cached --check
+          test "$(git diff --cached --name-only)" = "$KEEPALIVE_PATH"
+          git commit -m "chore: keep repository active"
+          git push origin HEAD:main
