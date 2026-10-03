@@ -114,6 +114,7 @@ jobs:
       contents: write
       pull-requests: write
       statuses: write
+      actions: read
     outputs:
       target_sha: ${{ steps.finalize.outputs.target_sha }}
     steps:
@@ -267,6 +268,57 @@ jobs:
             -f context='Stable release preflight' \
             -f description="Candidate ${VERSION} passed the image validation workflow" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+          validation_run=""
+          for attempt in $(seq 1 60); do
+            validation_run="$(gh api \
+              "repos/${GITHUB_REPOSITORY}/actions/runs?event=pull_request&head_sha=${HEAD_SHA}&per_page=20" \
+              --jq '.workflow_runs[0].id' 2>/dev/null || true)"
+            if [ -n "$validation_run" ] && [ "$validation_run" != "null" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$validation_run" ] || [ "$validation_run" = "null" ]; then
+            echo "PR Docker validation workflow did not start; leaving update PR open" >&2
+            exit 1
+          fi
+
+          validation_status=""
+          validation_conclusion=""
+          for attempt in $(seq 1 60); do
+            validation_state="$(gh run view "$validation_run" --repo "$GITHUB_REPOSITORY" --json status,conclusion)"
+            validation_status="$(python3 - "$validation_state" <<'PY'
+          import json
+          import sys
+
+          print(json.loads(sys.argv[1]).get("status") or "")
+          PY
+            )"
+            validation_conclusion="$(python3 - "$validation_state" <<'PY'
+          import json
+          import sys
+
+          print(json.loads(sys.argv[1]).get("conclusion") or "")
+          PY
+            )"
+            if [ "$validation_status" = "completed" ]; then
+              case "$validation_conclusion" in
+                success|skipped)
+                  break
+                  ;;
+                *)
+                  echo "PR Docker validation workflow ended with ${validation_conclusion}; leaving update PR open" >&2
+                  exit 1
+                  ;;
+              esac
+            fi
+            sleep 5
+          done
+          if [ "$validation_status" != "completed" ]; then
+            echo "PR Docker validation workflow did not complete; leaving update PR open" >&2
+            exit 1
+          fi
 
           for attempt in $(seq 1 60); do
             : "$attempt"
