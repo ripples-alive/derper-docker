@@ -48,3 +48,34 @@ workflow files so the built-in `GITHUB_TOKEN` can push them.
 The `Update Tailscale stable release` workflow checks the upstream stable
 release every day, validates a candidate multi-architecture build, and opens
 an exact-version PR for automatic merging when repository rules allow it.
+
+The build enables Go's automatic toolchain selection. The selected upstream
+source's `go.mod` determines whether a newer compiler must be downloaded;
+the base image's bundled compiler does not cap the supported Tailscale release.
+Build logs record the actual compiler, and module files remain read-only.
+
+A release is complete only when its version tag contains both target
+architectures and `latest` resolves to the same image index. The updater retries
+publication when the version file is already current but these artifacts are
+missing or inconsistent. A failed push therefore cannot be mistaken for a
+successful release on the next scheduled check.
+
+## Failure notifications
+
+`Workflow health alerts` independently watches the stable-release updater,
+default-branch image publication, and repository keepalive. A failed or disabled
+workflow creates an issue assigned to the repository owner. Set the Actions
+variable `WORKFLOW_ALERT_ASSIGNEE` to another GitHub login when needed. The
+recipient must enable GitHub web or email notifications for assigned issues.
+
+Repeated failures update the same issue without posting repeated comments.
+Recovery closes it; a later failure reopens it. In-flight or cancelled runs do
+not clear an existing failure. Pull-request and fork results are ignored, and
+manual image-validation runs cannot clear a publication failure.
+
+A daily reconciliation catches missed events and raises an alert if either
+daily workflow has not started a run for more than 48 hours. The alert workflow
+can also be run manually. It reads current API state, uses only default-branch
+code, and copies no build logs into public issues. No external webhook secret is
+required. GitHub Actions and GitHub notifications remain shared dependencies;
+this does not provide an independent outage monitor or prove email delivery.
