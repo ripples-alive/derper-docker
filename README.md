@@ -48,6 +48,9 @@ workflow files so the built-in `GITHUB_TOKEN` can push them.
 The `Update Tailscale stable release` workflow checks the upstream stable
 release every day, validates a candidate multi-architecture build, and opens
 an exact-version PR for automatic merging when repository rules allow it.
+It explicitly dispatches validation for that PR's exact commit and waits for
+success before merging. This avoids depending on approval-gated workflow events
+from bot-created PRs while preserving the repository's merge rules.
 
 The build enables Go's automatic toolchain selection. The selected upstream
 source's `go.mod` determines whether a newer compiler must be downloaded;

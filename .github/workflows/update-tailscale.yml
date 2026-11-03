@@ -102,11 +102,12 @@ jobs:
       needs.check.outputs.update_needed == 'true' &&
       needs.validate.result == 'success'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       contents: write
       pull-requests: write
       statuses: write
-      actions: read
+      actions: write
     outputs:
       target_sha: ${{ steps.finalize.outputs.target_sha }}
     steps:
@@ -261,24 +262,35 @@ jobs:
             -f description="Candidate ${VERSION} passed the image validation workflow" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+          # GITHUB_TOKEN-created PR workflows can require human approval.
+          # Dispatch the same validation explicitly and bind it to this request
+          # and exact commit; repository merge rules still apply below.
+          validation_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${HEAD_SHA}"
+          gh workflow run docker-image.yml --repo "$GITHUB_REPOSITORY" \
+            --ref "$UPDATE_BRANCH" \
+            --field "version=$VERSION" \
+            --field "push_image=false" \
+            --field "validation_id=$validation_id"
+
           validation_run=""
           for attempt in $(seq 1 60); do
             validation_run="$(gh api \
-              "repos/${GITHUB_REPOSITORY}/actions/runs?event=pull_request&head_sha=${HEAD_SHA}&per_page=20" \
-              --jq '.workflow_runs[0].id' 2>/dev/null || true)"
-            if [ -n "$validation_run" ] && [ "$validation_run" != "null" ]; then
+              "repos/${GITHUB_REPOSITORY}/actions/workflows/docker-image.yml/runs?event=workflow_dispatch&head_sha=${HEAD_SHA}&per_page=20" \
+              --jq ".workflow_runs[] | select(.head_sha == \"${HEAD_SHA}\" and (.display_title | endswith(\"request:${validation_id}\"))) | .id" \
+              2>/dev/null || true)"
+            if [[ "$validation_run" =~ ^[0-9]+$ ]]; then
               break
             fi
             sleep 5
           done
-          if [ -z "$validation_run" ] || [ "$validation_run" = "null" ]; then
-            echo "PR Docker validation workflow did not start; leaving update PR open" >&2
+          if [[ ! "$validation_run" =~ ^[0-9]+$ ]]; then
+            echo "Requested Docker validation workflow did not start; leaving update PR open" >&2
             exit 1
           fi
 
           validation_status=""
           validation_conclusion=""
-          for attempt in $(seq 1 60); do
+          for attempt in $(seq 1 180); do
             validation_state="$(gh run view "$validation_run" --repo "$GITHUB_REPOSITORY" --json status,conclusion)"
             validation_status="$(python3 - "$validation_state" <<'PY'
           import json
@@ -296,19 +308,19 @@ jobs:
             )"
             if [ "$validation_status" = "completed" ]; then
               case "$validation_conclusion" in
-                success|skipped)
+                success)
                   break
                   ;;
                 *)
-                  echo "PR Docker validation workflow ended with ${validation_conclusion}; leaving update PR open" >&2
+                  echo "Requested Docker validation workflow ended with ${validation_conclusion}; leaving update PR open" >&2
                   exit 1
                   ;;
               esac
             fi
-            sleep 5
+            sleep 10
           done
           if [ "$validation_status" != "completed" ]; then
-            echo "PR Docker validation workflow did not complete; leaving update PR open" >&2
+            echo "Requested Docker validation workflow did not complete; leaving update PR open" >&2
             exit 1
           fi
 
