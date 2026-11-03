@@ -4,6 +4,7 @@ run-name: >-
   Docker image
   ${{ inputs.version && format(' ({0})', inputs.version) || '' }}
   ${{ (github.event_name == 'pull_request' || (inputs.invocation == 'reusable' && inputs.push_image == false) || (github.event_name == 'workflow_dispatch' && inputs.push_image == false)) && ' [validation]' || '' }}
+  ${{ inputs.validation_id && format('request:{0}', inputs.validation_id) || '' }}
 
 on:
   push:
@@ -25,6 +26,10 @@ on:
         required: false
         default: true
         type: boolean
+      validation_id:
+        description: "Correlation identifier for an updater-requested validation."
+        required: false
+        type: string
   workflow_call:
     inputs:
       invocation:
@@ -43,6 +48,10 @@ on:
         type: boolean
       checkout_ref:
         description: "Commit or ref to label and build."
+        required: false
+        type: string
+      validation_id:
+        description: "Correlation identifier for an updater-requested validation."
         required: false
         type: string
 
