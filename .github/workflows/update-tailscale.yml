@@ -67,16 +67,8 @@ jobs:
           )"
 
           current="$(python3 scripts/update-version.py --version-file "$VERSION_FILE" --current)"
-          update_needed="$(python3 - "$current" "$version" <<'PY'
-          import sys
-
-          current = tuple(int(part) for part in sys.argv[1].split("."))
-          candidate = tuple(int(part) for part in sys.argv[2].split("."))
-          if candidate < current:
-              raise SystemExit(f"refusing downgrade from {sys.argv[1]} to {sys.argv[2]}")
-          print("true" if candidate > current else "false")
-          PY
-          )"
+          update_needed="$(python3 scripts/release_state.py needs-update \
+            --current "$current" --version "$version" --image "$IMAGE_NAME")"
 
           base_sha="$(git rev-parse HEAD)"
           {

@@ -1,5 +1,8 @@
 FROM golang:1.26-alpine AS builder
 
+# Follow the selected upstream release's go.mod toolchain requirement.
+ENV GOTOOLCHAIN=auto
+
 WORKDIR /go/src/tailscale
 
 ARG VERSION
@@ -9,7 +12,9 @@ RUN mkdir -p /go/src && cd /go/src \
     && tar -xzvf tailscale.tar.gz -C tailscale --strip-components 1 \
     && rm tailscale.tar.gz
 
-RUN go build ./cmd/derper && go build ./cmd/derpprobe
+RUN go version \
+    && go build -mod=readonly ./cmd/derper \
+    && go build -mod=readonly ./cmd/derpprobe
 
 FROM alpine:3.19
 

@@ -120,6 +120,9 @@ jobs:
             echo "EOF"
           } >>"$GITHUB_OUTPUT"
 
+      - name: Test release automation
+        run: python3 -m unittest discover -s tests -v
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
 
@@ -151,3 +154,9 @@ jobs:
             org.opencontainers.image.description=Tailscale DERP server image
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify published image
+        if: steps.build.outputs.push_image == 'true'
+        env:
+          IMAGE_VERSION: ${{ steps.build.outputs.version }}
+        run: python3 scripts/release_state.py verify --version "$IMAGE_VERSION" --image "$IMAGE_NAME"
